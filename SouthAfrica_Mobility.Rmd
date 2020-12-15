@@ -1,0 +1,196 @@
+---
+title: "SouthAfrica_Mobility"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r initial_setup, echo=FALSE}
+#Read all SOuth Africa mobility data
+allSAData <- read.csv("SouthAfrica_Mobility_Report_08Dec20.csv")
+
+#Split out national level data
+nationalData <- subset(allSAData,allSAData[,3]=="")
+
+#Split out provincial level data
+GPData <- subset(allSAData,allSAData[,3]=="Gauteng")
+ECData <- subset(allSAData,allSAData[,3]=="Eastern Cape")
+WCData <- subset(allSAData,allSAData[,3]=="Western Cape")
+KZNData <- subset(allSAData,allSAData[,3]=="KwaZulu-Natal")
+FSData <- subset(allSAData,allSAData[,3]=="Free State")
+NCData <- subset(allSAData,allSAData[,3]=="Northern Cape")
+MPData <- subset(allSAData,allSAData[,3]=="Mpumalanga")
+LPData <- subset(allSAData,allSAData[,3]=="Limpopo")
+NWData <- subset(allSAData,allSAData[,3]=="North West")
+
+#loading packages
+library(ggplot2)
+library(ggeasy)
+library(ggpubr)
+library(gganimate)
+library(gifski)
+library(transformr)
+library(scales)
+
+```
+
+## Some initial plots to explore the data
+
+```{r initial_plots, echo=FALSE}
+pSA <-  ggplot(data = nationalData, aes(x=as.Date(date), y=residential_percent_change_from_baseline, group =1, colour='Home'))+
+  geom_path()+
+  geom_line(data = nationalData, aes(x=as.Date(date), y=workplaces_percent_change_from_baseline, group =1, colour='Work'))+
+  geom_line(data = nationalData, aes(x=as.Date(date), y=retail_and_recreation_percent_change_from_baseline, group =1, colour='Retail & Recreation'))+
+  geom_line(data = nationalData, aes(x=as.Date(date), y=grocery_and_pharmacy_percent_change_from_baseline, group =1, colour='Parks'))+
+  geom_line(data = nationalData, aes(x=as.Date(date), y=parks_percent_change_from_baseline, group =1, colour='Retail & Recreation'))+
+  geom_line(data = nationalData, aes(x=as.Date(date), y=transit_stations_percent_change_from_baseline, group =1, colour='Transit Stations'))+
+  geom_line(data = nationalData, aes(x=as.Date(date), y=transit_stations_percent_change_from_baseline, group =1, colour='Transit Stations'))
+
+```
+
+## Some animated plots to show the change over time
+
+```{r animated plots, echo=FALSE}
+#Adding the dates for the start of each alert level
+alert_levels <- data.frame(Ref = c("Lv5", "Lv4","Lv3","Lv2", "Lv1"), vals = c(as.Date("2020/03/26"), as.Date("2020/05/01"), as.Date("2020/06/01"), as.Date("2020/08/18"), as.Date("2020/09/21")), stringsAsFactors = FALSE)
+
+pSAan_HW <-  ggplot(data = nationalData, aes(x=as.Date(date), y=residential_percent_change_from_baseline/100, group =1, colour='Residential'), show.legend = TRUE)+
+  geom_path()+
+  geom_line(data = nationalData, aes(x=as.Date(date), y=workplaces_percent_change_from_baseline/100, group =1, colour='Workplaces'), show.legend = TRUE)+
+  xlab("Date")+
+  ylab("Percentage change from baseline")+
+  #ggtitle("Mobility trends for places of residence and work")+
+  scale_x_date(date_labels = "%b",date_breaks = "1 month")+
+  scale_y_continuous(breaks = seq(-0.75,0.5, by = 0.25), labels = percent)+
+  scale_colour_manual(values=c("red", "blue", "black"), name=NULL)+
+  geom_vline(mapping = aes(xintercept = vals), data = alert_levels, show.legend = FALSE) +
+  geom_text(mapping = aes(x = vals, y = 0.45, label = Ref, hjust = -0.5, vjust = 0), colour="black", data = alert_levels, show.legend = FALSE)+
+  theme(legend.position = "top", plot.title = element_text(hjust = 0.5))+
+  
+  #animation code
+  transition_reveal(as.Date(date))
+  
+
+animate(pSAan_HW, renderer = gifski_renderer())
+anim_save("home_and_work.gif")
+
+pSAan_T <-  ggplot(data = nationalData, aes(x=as.Date(date), y=transit_stations_percent_change_from_baseline/100, group =1, colour='blue'), show.legend = FALSE)+
+  geom_path()+
+  xlab("Date")+
+  ylab("Percentage change from baseline")+
+  #ggtitle("Movement change for time at transit stations")+
+  scale_x_date(date_labels = "%b",date_breaks = "1 month")+
+  scale_y_continuous(breaks = seq(-0.75,0.5, by = 0.25), labels = percent)+
+  scale_colour_manual(values=c("blue","black"), name=NULL)+
+  geom_vline(mapping = aes(xintercept = vals), data = alert_levels, show.legend = FALSE) +
+  geom_text(mapping = aes(x = vals, y = 0.45, label = Ref, hjust = -0.5, vjust = 0), colour="black", data = alert_levels, show.legend = FALSE)+
+  theme(legend.position = "none", plot.title = element_text(hjust = 0.5))+
+  
+  #animation code
+  transition_reveal(as.Date(date))
+
+animate(pSAan_T, renderer = gifski_renderer())
+anim_save("transit.gif")
+
+pSAan_P <-  ggplot(data = nationalData, aes(x=as.Date(date), y=parks_percent_change_from_baseline/100, group =1, colour='blue'), show.legend = FALSE)+
+  geom_path()+
+  xlab("Date")+
+  ylab("Percentage change from baseline")+
+  #ggtitle("Movement change for time at parks")+
+  scale_x_date(date_labels = "%b",date_breaks = "1 month")+
+  scale_y_continuous(breaks = seq(-0.75,0.5, by = 0.25), labels = percent)+
+  scale_colour_manual(values=c("blue","black"), name=NULL)+
+  geom_vline(mapping = aes(xintercept = vals), data = alert_levels, show.legend = FALSE) +
+  geom_text(mapping = aes(x = vals, y = 0.45, label = Ref, hjust = -0.5, vjust = 0), colour="black", data = alert_levels, show.legend = FALSE)+
+  theme(legend.position = "none", plot.title = element_text(hjust = 0.5))+
+  
+  #animation code
+  transition_reveal(as.Date(date))
+
+animate(pSAan_P, renderer = gifski_renderer())
+anim_save("parks.gif")
+
+pSAan_R <-  ggplot(data = nationalData, aes(x=as.Date(date), y=retail_and_recreation_percent_change_from_baseline/100, group =1, colour='red'), show.legend = FALSE)+
+  geom_path()+
+  xlab("Date")+
+  ylab("Percentage change from baseline")+
+  #ggtitle("Movement change for time at retail and recreation locations")+
+  scale_x_date(date_labels = "%b",date_breaks = "1 month")+
+  scale_y_continuous(breaks = seq(-0.75,0.5, by = 0.25), labels = percent)+
+  scale_colour_manual(values=c("red","black"), name=NULL)+
+  geom_vline(mapping = aes(xintercept = vals), data = alert_levels, show.legend = FALSE) +
+  geom_text(mapping = aes(x = vals, y = 0.45, label = Ref, hjust = -0.5, vjust = 0), colour="black", data = alert_levels, show.legend = FALSE)+
+  theme(legend.position = "none", plot.title = element_text(hjust = 0.5))+
+  
+  #animation code
+  transition_reveal(as.Date(date))
+
+animate(pSAan_R, renderer = gifski_renderer())
+anim_save("retail_and_rec.gif")
+
+pSAan_G <-  ggplot(data = nationalData, aes(x=as.Date(date), y=grocery_and_pharmacy_percent_change_from_baseline/100, group =1, colour='red'), show.legend = FALSE)+
+  geom_path()+
+  xlab("Date")+
+  ylab("Percentage change from baseline")+
+  #ggtitle("Movement change for time at grocery and pharmacy locations")+
+  scale_x_date(date_labels = "%b",date_breaks = "1 month")+
+  scale_y_continuous(breaks = seq(-0.75,0.5, by = 0.25), labels = percent)+
+  scale_colour_manual(values=c("red","black"), name=NULL)+
+  geom_vline(mapping = aes(xintercept = vals), data = alert_levels, show.legend = FALSE) +
+  geom_text(mapping = aes(x = vals, y = 0.45, label = Ref, hjust = -0.5, vjust = 0), colour="black", data = alert_levels, show.legend = FALSE)+
+  theme(legend.position = "none", plot.title = element_text(hjust = 0.5))+
+  
+  #animation code
+  transition_reveal(as.Date(date))
+
+animate(pSAan_G, renderer = gifski_renderer())
+anim_save("grocery_and_pharma.gif")
+```
+
+## Some tables to show some summary statistics
+
+```{r tables}
+#Note that the data begins on 15 Feb and ends on 6 Dec
+
+#Removing public holidays
+nationalData.. <- subset(nationalData, as.Date(date)!=as.Date("2020/03/21") & as.Date(date)!=as.Date("2020/04/10") & as.Date(date)!=as.Date("2020/04/13") & as.Date(date)!=as.Date("2020/04/27") & as.Date(date)!=as.Date("2020/05/01") & as.Date(date)!=as.Date("2020/06/16") & as.Date(date)!=as.Date("2020/08/09") & as.Date(date)!=as.Date("2020/08/10") & as.Date(date)!=as.Date("2020/09/24"))
+
+#Slicing the data by lockdown level
+preLv5 <- subset(nationalData..,as.Date(date)<as.Date("2020/03/26"))
+lv5 <- subset(nationalData..,as.Date("2020/03/26")<as.Date(date) & as.Date(date)<as.Date("2020/05/01"))
+lv4 <- subset(nationalData..,as.Date("2020/04/30")<as.Date(date) & as.Date(date)<as.Date("2020/06/01"))
+lv3 <- subset(nationalData..,as.Date("2020/05/31")<as.Date(date) & as.Date(date)<as.Date("2020/08/18"))
+lv2 <- subset(nationalData..,as.Date("2020/08/17")<as.Date(date) & as.Date(date)<as.Date("2020/09/21"))
+lv1 <- subset(nationalData..,as.Date("2020/09/20")<as.Date(date))
+
+#Calculating averages
+preLv5Delta <- c(mean(preLv5[,9]), mean(preLv5[,10]), mean(preLv5[,11]), mean(preLv5[,12]), mean(preLv5[,13]), mean(preLv5[,14]))
+lv5Delta <- c(mean(lv5[,9]), mean(lv5[,10]), mean(lv5[,11]), mean(lv5[,12]), mean(lv5[,13]), mean(lv5[,14]))
+lv4Delta <- c(mean(lv4[,9]), mean(lv4[,10]), mean(lv4[,11]), mean(lv4[,12]), mean(lv4[,13]), mean(lv4[,14]))
+lv3Delta <- c(mean(lv3[,9]), mean(lv3[,10]), mean(lv3[,11]), mean(lv3[,12]), mean(lv3[,13]), mean(lv3[,14]))
+lv2Delta <- c(mean(lv2[,9]), mean(lv2[,10]), mean(lv2[,11]), mean(lv2[,12]), mean(lv2[,13]), mean(lv2[,14]))
+lv1Delta <- c(mean(lv1[,9]), mean(lv1[,10]), mean(lv1[,11]), mean(lv1[,12]), mean(lv1[,13]), mean(lv1[,14]))
+
+avgDelta <- cbind(round(preLv5Delta),round(lv5Delta),round(lv4Delta),round(lv3Delta),round(lv2Delta),round(lv1Delta))
+row.names(avgDelta) <- c("Retail and Recreation", "Grocery and Pharmacy", "Parks", "Transit Stations", "Workplaces", "Residential")
+colnames(avgDelta) <- c("Before Lockdown", "Level 5", "Level 4", "Level 3","Level 2", "Level 1")
+
+#Calculating medians
+preLv5Med <- c(median(preLv5[,9]), median(preLv5[,10]), median(preLv5[,11]), median(preLv5[,12]), median(preLv5[,13]), median(preLv5[,14]))
+lv5Med <- c(median(lv5[,9]), median(lv5[,10]), median(lv5[,11]), median(lv5[,12]), median(lv5[,13]), median(lv5[,14]))
+lv4Med <- c(median(lv4[,9]), median(lv4[,10]), median(lv4[,11]), median(lv4[,12]), median(lv4[,13]), median(lv4[,14]))
+lv3Med <- c(median(lv3[,9]), median(lv3[,10]), median(lv3[,11]), median(lv3[,12]), median(lv3[,13]), median(lv3[,14]))
+lv2Med <- c(median(lv2[,9]), median(lv2[,10]), median(lv2[,11]), median(lv2[,12]), median(lv2[,13]), median(lv2[,14]))
+lv1Med <- c(median(lv1[,9]), median(lv1[,10]), median(lv1[,11]), median(lv1[,12]), median(lv1[,13]), median(lv1[,14]))
+
+avgMed <- cbind(round(preLv5Med),round(lv5Med),round(lv4Med),round(lv3Med),round(lv2Med),round(lv1Med))
+row.names(avgMed) <- c("Retail and Recreation", "Grocery and Pharmacy", "Parks", "Transit Stations", "Workplaces", "Residential")
+colnames(avgMed) <- c("Before Lockdown", "Level 5", "Level 4", "Level 3","Level 2", "Level 1")
+
+```
+
+
+
